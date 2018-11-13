@@ -57,8 +57,8 @@ class Containers:
         if start_command is None:
             start_command = ['tail', '-f', '/dev/null']
 
-        # targets = {}
-        # binds = []
+        targets = {}
+        binds = []
 
          if omg.get('volumes'):
              for name, data in omg['volumes'].items():
