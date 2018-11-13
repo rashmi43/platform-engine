@@ -90,11 +90,40 @@ class Kubernetes:
 
     @classmethod
     async def remove_volume(cls, story, line, name):
-        pass
+        payload = {
+            'apiVersion': 'v1',
+            'kind': 'PersistentVolume',
+            'metadata': {
+                'name': name,
+            },
+            'spec': {
+                'gcePersistentDisk': {
+                    'pdName': name,
+                    'fsType': 'ext4'
+                }
+            }
+        }
+
+        path = f'/api/v1/persistentvolumes/{name}'
+        res = await cls.make_k8s_call(story.app, path, payload, method='delete')
 
     @classmethod
     async def create_volume(cls, story, line, name):
-        pass
+        payload = {
+            'apiVersion': 'v1',
+            'kind': 'PersistentVolume',
+            'metadata': {
+                'name': name,
+            },
+            'spec': {
+                'gcePersistentDisk': {
+                    'pdName': name,
+                    'fsType': 'ext4'
+                }
+            }
+        }
+
+        res = await cls.make_k8s_call(story.app, '/api/v1/persistentvolumes', payload)
 
     @classmethod
     async def clean_namespace(cls, app):
