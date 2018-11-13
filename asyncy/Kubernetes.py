@@ -106,6 +106,9 @@ class Kubernetes:
 
         path = f'/api/v1/persistentvolumes/{name}'
         res = await cls.make_k8s_call(story.app, path, payload, method='delete')
+        
+        cls.raise_if_not_2xx(res, story, line)
+        story.logger.debug(f'k8s volume {name} deleted')
 
     @classmethod
     async def create_volume(cls, story, line, name):
@@ -124,6 +127,8 @@ class Kubernetes:
         }
 
         res = await cls.make_k8s_call(story.app, '/api/v1/persistentvolumes', payload)
+        cls.raise_if_not_2xx(res, story, line)
+        story.logger.debug(f'k8s volume {name} created')
 
     @classmethod
     async def clean_namespace(cls, app):
