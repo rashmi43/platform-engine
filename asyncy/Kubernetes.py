@@ -90,6 +90,7 @@ class Kubernetes:
 
     @classmethod
     async def remove_volume(cls, story, line, name):
+        method = 'delete'
         payload = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolume',
@@ -105,13 +106,14 @@ class Kubernetes:
         }
 
         path = f'/api/v1/persistentvolumes/{name}'
-        res = await cls.make_k8s_call(story.app, path, payload, method='delete')
-        
+        res = await cls.make_k8s_call(story.app, path, payload, method)
+
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} deleted')
 
     @classmethod
     async def create_volume(cls, story, line, name):
+        path = '/api/v1/persistentvolumes'
         payload = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolume',
@@ -126,7 +128,7 @@ class Kubernetes:
             }
         }
 
-        res = await cls.make_k8s_call(story.app, '/api/v1/persistentvolumes', payload)
+        res = await cls.make_k8s_call(story.app, path, payload)
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} created')
 
