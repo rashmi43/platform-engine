@@ -92,9 +92,9 @@ class Kubernetes:
     async def remove_volume(cls, story, line, name):
         method = 'delete'
 
-        res = await cls.make_k8s_call(story.app, 
-                  f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
-                  f'?PropagationPolicy=Background&gracePeriodSeconds=3', payload, method)
+        res = await cls.make_k8s_call(story.app,
+              f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
+              f'?PropagationPolicy=Background&gracePeriodSeconds=3', payload, method)
 
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} deleted')
@@ -231,21 +231,22 @@ class Kubernetes:
         # 1:1 between a pod and a deployment.
 
         env_k8s = []  # Must container {name:'foo', value:'bar'}.
-        volMounts = []
+        volMounts, volumes = [], []
 
         if binds:
             for i in range(len(binds)):
-                vol = binds[i].split(":")
-                volumeMounts.append({
+               vol = binds[i].split(':')
+                volMounts.append({
                     'mountPaths': vol[1],
-                    'name': vol[0]   
+                    'name': vol[0]
                 })
                 volumes.append({
                     'name': vol[0],
-                    persistentVolumeClaim: {
-                    'claimName': vol[0]+'claim'
+                    'persistentVolumeClaim': {
+                        'claimName': vol[0]+'claim'
                     }
-                }) 
+                })
+
         if env:
             for k, v in env.items():
                 env_k8s.append({
