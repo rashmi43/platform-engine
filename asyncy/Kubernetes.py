@@ -287,8 +287,7 @@ class Kubernetes:
                                 'lifecycle': {
                                 },
                                 'volumeMounts': volMounts 
-                       		]
-                             }
+                             }],
                         'volumes': volumes
             }
         }
