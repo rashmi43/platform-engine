@@ -93,8 +93,8 @@ class Kubernetes:
         method = 'delete'
 
         res = await cls.make_k8s_call(story.app,
-              f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
-              f'?PropagationPolicy=Background&gracePeriodSeconds=3', payload, method)
+            f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
+            f'?PropagationPolicy=Background&gracePeriodSeconds=3', method='delete')
 
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} deleted')
@@ -235,17 +235,17 @@ class Kubernetes:
 
         if binds:
             for i in range(len(binds)):
-               vol = binds[i].split(':')
-               volMounts.append({
-                    'mountPaths': vol[1],
-                    'name': vol[0]
+                vol = binds[i].split(':')
+                volMounts.append({
+                     'mountPaths': vol[1],
+                     'name': vol[0]
                 })
-               volumes.append({
-                   'name': vol[0],
-                   'persistentVolumeClaim': {
-                       'claimName': vol[0]+'claim'
-                   }
-               })
+                volumes.append({
+                    'name': vol[0],
+                    'persistentVolumeClaim': {
+                        'claimName': vol[0]+'claim'
+                    }
+                })
 
         if env:
             for k, v in env.items():
@@ -278,17 +278,16 @@ class Kubernetes:
                         }
                     },
                     'spec': {
-                        'containers': [
-                            {
-                                'name': container_name,
-                                'image': image,
-                                'command': start_command,
-                                'imagePullPolicy': 'Always',
-                                'env': env_k8s,
-                                'lifecycle': {
-                                },
-                                'volumeMounts': volMounts 
-                             }],
+                        'containers': [{
+                            'name': container_name,
+                            'image': image,
+                            'command': start_command,
+                            'imagePullPolicy': 'Always',
+                            'env': env_k8s,
+                            'lifecycle': {
+                             },
+                             'volumeMounts': volMounts 
+                        }],
                         'volumes': volumes
                     }
                 }
@@ -337,8 +336,8 @@ class Kubernetes:
 
     @classmethod
     async def create_pod(cls, story: Stories, line: dict, image: str,
-                         container_name: str, binds: [], start_command: [] or str,
-                         shutdown_command: [] or str, env: dict):
+                     container_name: str, binds: [], start_command: [] or str,
+                     shutdown_command: [] or str, env: dict):
         await cls.create_namespace_if_required(story, line)
         res = await cls.make_k8s_call(
             story.app,
