@@ -349,6 +349,6 @@ class Kubernetes:
             return
 
         await cls.create_deployment(story, line, image, container_name,
-                                    start_command, shutdown_command, env)
+                                    binds, start_command, shutdown_command, env)
 
         await cls.create_service(story, line, container_name)
