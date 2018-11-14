@@ -139,6 +139,32 @@ def _create_response(code: int, body: dict = None):
 
 @mark.parametrize('first_res', [200, 409])
 @mark.asyncio
+async def test_remove_volume(patch, story, line, async_mock, first_res):
+    story.app.app_id = 'my_app'
+    api_responses = [
+        _create_response(first_res),
+        _create_response(200),
+        _create_response(200),
+        _create_response(404),
+    ]
+    patch.object(Kubernetes, 'make_k8s_call',
+                 new=async_mock(side_effect=api_responses))
+    patch.object(asyncio, 'sleep', new=async_mock())
+    await Kubernetes.remove_volume(story, line, my_volclaim)
+
+    assert Kubernetes.make_k8s_call.mock.mock_calls == [
+        mock.call(story.app,
+                  '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim
+                  ?PropagationPolicy=Background''&gracePeriodSeconds=3',
+                  method='delete'),
+        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
+        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
+        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
+    ]
+
+
+@mark.parametrize('first_res', [200, 409])
+@mark.asyncio
 async def test_clean_namespace(patch, story, async_mock, first_res):
     story.app.app_id = 'my_app'
     api_responses = [
@@ -329,6 +355,62 @@ async def test_create_deployment(patch, async_mock, story):
 
     await Kubernetes.create_deployment(story, line, image, container_name,
                                        start_command, shutdown_command, env)
+
+    assert Kubernetes.make_k8s_call.mock.mock_calls == [
+        mock.call(story.app, expected_create_path, expected_payload),
+        mock.call(story.app, expected_create_path, expected_payload),
+        mock.call(story.app, expected_verify_path),
+        mock.call(story.app, expected_verify_path),
+        mock.call(story.app, expected_verify_path)
+    ]
+
+@mark.asyncio
+async def test_create_volume(patch, story, line, async_mock, story):
+    container_name = 'asyncy--alpine-1'
+    story.app.app_id = 'my_app'
+    image = 'alpine:latest'
+    vol_name = 'my_vol'
+    vol_name_claim = my_volclaim
+
+    env = {'token': 'asyncy-19920', 'username': 'asyncy'}
+    start_command = ['/bin/bash', 'sleep', '10000']
+    shutdown_command = ['wall', 'Shutdown']
+
+    expected_payload = {
+        'apiVersion': 'apps/v1',
+        'kind': 'PersistentVolumeClaim',
+        'metadata': {
+            'name': vol_name_claim',
+            'namespace': story.app.app_id
+        }
+        'spec': {
+            'accessModes': 'ReadOnlyMany'
+            'resources': {
+            'requests': {
+                'storage': '1Gi'
+                 }
+            }
+        }
+    }
+  
+
+    patch.object(asyncio, 'sleep', new=async_mock())
+
+    expected_create_path = f'/apis/apps/v1/namespaces/' \
+                           f'{story.app.app_id}/persistentvolumeclaims'
+    expected_verify_path = f'/apis/apps/v1/namespaces/{story.app.app_id}' \
+                           f'/persistentvolumeclaims/{vol_name_claim}'
+
+    patch.object(Kubernetes, 'make_k8s_call', new=async_mock(side_effect=[
+        _create_response(404),
+        _create_response(201),
+        _create_response(200, {'status': {'readyReplicas': 0}}),
+        _create_response(200, {'status': {'readyReplicas': 0}}),
+        _create_response(200, {'status': {'readyReplicas': 1}})
+    ]))
+    line = {}
+
+    await Kubernetes.create_volume(story, line, vol_name)
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app, expected_create_path, expected_payload),

@@ -1,41 +1,41 @@
-# -*- coding: utf-8 -*-
-import asyncio
-import json
-import ssl
+# -*- CODING: UTF-8 -*-
+IMPORT ASYNCIO
+IMPORT JSON
+IMPORT SSL
 
-from tornado.httpclient import AsyncHTTPClient, HTTPResponse
+FROM TORNADO.HTTPCLIENT IMPORT ASYNCHTTPCLIENT, HTTPRESPONSE
 
-from .Exceptions import K8sError
-from .Stories import Stories
-from .constants.LineConstants import LineConstants
-from .utils.HttpUtils import HttpUtils
+FROM .EXCEPTIONS IMPORT K8SERROR
+FROM .STORIES IMPORT STORIES
+FROM .CONSTANTS.LINECONSTANTS IMPORT LINECONSTANTS
+FROM .UTILS.HTTPUTILS IMPORT HTTPUTILS
 
 
-class Kubernetes:
+CLASS KUBERNETES:
 
-    @classmethod
-    def is_2xx(cls, res: HTTPResponse):
-        return round(res.code / 100) == 2
+    @CLASSMETHOD
+    DEF IS_2XX(CLS, RES: HTTPRESPONSE):
+        RETURN ROUND(RES.CODE / 100) == 2
 
-    @classmethod
-    def raise_if_not_2xx(cls, res: HTTPResponse, story, line):
-        if cls.is_2xx(res):
-            return
+    @CLASSMETHOD
+    DEF RAISE_IF_NOT_2XX(CLS, RES: HTTPRESPONSE, STORY, LINE):
+        IF CLS.IS_2XX(RES):
+            RETURN
 
-        path = res.request.url
-        raise K8sError(story=story, line=line,
-                       message=f'Failed to call {path}! '
-                               f'code={res.code}; body={res.body}; '
-                               f'error={res.error}')
+        PATH = RES.REQUEST.URL
+        RAISE K8SERROR(STORY=STORY, LINE=LINE,
+                       MESSAGE=F'FAILED TO CALL {PATH}! '
+                               F'CODE={RES.CODE}; BODY={RES.BODY}; '
+                               F'ERROR={RES.ERROR}')
 
-    @classmethod
-    async def create_namespace_if_required(cls, story, line):
-        res = await cls.make_k8s_call(story.app,
-                                      f'/api/v1/namespaces/{story.app.app_id}')
+    @CLASSMETHOD
+    ASYNC DEF CREATE_NAMESPACE_IF_REQUIRED(CLS, STORY, LINE):
+        RES = AWAIT CLS.MAKE_K8S_CALL(STORY.APP,
+                                      F'/API/V1/NAMESPACES/{STORY.APP.APP_ID}')
 
-        if res.code == 200:
-            story.logger.debug(f'k8s namespace {story.app.app_id} exists')
-            return
+        IF RES.CODE == 200:
+            STORY.LOGGER.DEBUG(F'K8S NAMESPACE {STORY.APP.APP_ID} EXISTS')
+            RETURN
 
         story.logger.debug(f'k8s namespace {story.app.app_id} does not exist')
         payload = {
@@ -91,21 +91,9 @@ class Kubernetes:
     @classmethod
     async def remove_volume(cls, story, line, name):
         method = 'delete'
-        payload = {
-            'apiVersion': 'v1',
-            'kind': 'PersistentVolume',
-            'metadata': {
-                'name': name,
-            },
-            'spec': {
-                'gcePersistentDisk': {
-                    'pdName': name,
-                    'fsType': 'ext4'
-                }
-            }
-        }
 
-        path = f'/api/v1/persistentvolumes/{name}'
+        path = f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/
+                   {name}?PropagationPolicy=Background'f'&gracePeriodSeconds=3'
         res = await cls.make_k8s_call(story.app, path, payload, method)
 
         cls.raise_if_not_2xx(res, story, line)
@@ -113,17 +101,19 @@ class Kubernetes:
 
     @classmethod
     async def create_volume(cls, story, line, name):
-        path = '/api/v1/persistentvolumes'
+        path = '/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims'
         payload = {
             'apiVersion': 'v1',
-            'kind': 'PersistentVolume',
+            'kind': 'PersistentVolumeClaim',
             'metadata': {
-                'name': name,
+                'name': name + 'claim',
             },
             'spec': {
-                'gcePersistentDisk': {
-                    'pdName': name,
-                    'fsType': 'ext4'
+                'accessModes': 'ReadOnlyMany'
+                'resources': {
+                    'requests': {
+                        'storage': '1Gi'
+                    }
                 }
             }
         }
@@ -234,14 +224,28 @@ class Kubernetes:
 
     @classmethod
     async def create_deployment(cls, story: Stories, line: dict, image: str,
-                                container_name: str, start_command: [] or str,
+                                container_name: str, binds: [], start_command: [] or str,
                                 shutdown_command: [] or str, env: dict):
         # Note: We don't check if this deployment exists because if it did,
         # then we'd not get here. create_pod checks it. During beta, we tie
         # 1:1 between a pod and a deployment.
 
         env_k8s = []  # Must container {name:'foo', value:'bar'}.
+        volMounts = []
 
+        if binds:
+            for i in range(len(binds)):
+                vol = binds[i].split(":")
+                volumeMounts.append({
+                    'mountPaths': vol[1],
+                    'name': vol[0]   
+                })
+                volumes.append({
+                    'name': vol[0],
+                    persistentVolumeClaim: {
+                    'claimName': vol[0]+'claim'
+                    }
+                }) 
         if env:
             for k, v in env.items():
                 env_k8s.append({
@@ -281,10 +285,10 @@ class Kubernetes:
                                 'imagePullPolicy': 'Always',
                                 'env': env_k8s,
                                 'lifecycle': {
-                                }
-                            }
+                                },
+                                'volumeMounts': volMounts 
                         ]
-                    }
+                        'volumes': volumes
                 }
             }
         }
@@ -331,7 +335,7 @@ class Kubernetes:
 
     @classmethod
     async def create_pod(cls, story: Stories, line: dict, image: str,
-                         container_name: str, start_command: [] or str,
+                         container_name: str, binds: [], start_command: [] or str,
                          shutdown_command: [] or str, env: dict):
         await cls.create_namespace_if_required(story, line)
         res = await cls.make_k8s_call(
