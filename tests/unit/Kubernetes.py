@@ -154,9 +154,9 @@ async def test_remove_volume(patch, story, line, async_mock, first_res):
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app,
-                 f'/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'
-                 f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
-                 method='delete'),
+            f'/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'
+            f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
+            method='delete'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
@@ -383,14 +383,14 @@ async def test_create_volume(patch, story, line, async_mock, story):
         'metadata': {
             'name': vol_name_claim,
             'namespace': story.app.app_id
-        }
+        },
         'spec': {
             'accessModes': 'ReadOnlyMany',
             'resources': {
                 'requests': {
                     'storage': '1Gi'
-                 }
-            }
+                }
+            }   
         }
     }
 
