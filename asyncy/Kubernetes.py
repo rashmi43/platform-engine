@@ -90,10 +90,12 @@ class Kubernetes:
 
     @classmethod
     async def remove_volume(cls, story, line, name):
+        app = story.app.app_id
         res = await cls.make_k8s_call(
             story.app,
-            f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
-            f'?PropagationPolicy=Background&gracePeriodSeconds=3', method='delete')
+            f'/api/v1/namespaces/{app}/persistentvolumeclaims/{name}'
+            f'?PropagationPolicy=Background&gracePeriodSeconds=3',
+            method='delete')
 
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} deleted')
@@ -223,7 +225,8 @@ class Kubernetes:
 
     @classmethod
     async def create_deployment(cls, story: Stories, line: dict, image: str,
-                                container_name: str, binds: [], start_command: [] or str,
+                                container_name: str, binds: [],
+                                start_command: [] or str,
                                 shutdown_command: [] or str, env: dict):
         # Note: We don't check if this deployment exists because if it did,
         # then we'd not get here. create_pod checks it. During beta, we tie
@@ -236,8 +239,8 @@ class Kubernetes:
             for i in range(len(binds)):
                 vol = binds[i].split(':')
                 volMounts.append({
-                     'mountPaths': vol[1],
-                     'name': vol[0]
+                    'mountPaths': vol[1],
+                    'name': vol[0]
                 })
                 volumes.append({
                     'name': vol[0],
@@ -285,7 +288,7 @@ class Kubernetes:
                             'env': env_k8s,
                             'lifecycle': {
                             },
-                            'volumeMounts': volMounts 
+                            'volumeMounts': volMounts
                         }],
                         'volumes': volumes
                     }
@@ -335,8 +338,9 @@ class Kubernetes:
 
     @classmethod
     async def create_pod(cls, story: Stories, line: dict, image: str,
-                     container_name: str, binds: [], start_command: [] or str,
-                     shutdown_command: [] or str, env: dict):
+                         container_name: str, binds: [],
+                         start_command: [] or str,
+                         shutdown_command: [] or str, env: dict):
         await cls.create_namespace_if_required(story, line)
         res = await cls.make_k8s_call(
             story.app,
@@ -349,6 +353,7 @@ class Kubernetes:
             return
 
         await cls.create_deployment(story, line, image, container_name,
-                                    binds, start_command, shutdown_command, env)
+                                    binds, start_command, shutdown_command,
+                                    env)
 
         await cls.create_service(story, line, container_name)

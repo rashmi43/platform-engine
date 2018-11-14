@@ -141,7 +141,9 @@ def _create_response(code: int, body: dict = None):
 @mark.asyncio
 async def test_remove_volume(patch, story, line, async_mock, first_res):
     story.app.app_id = 'my_app'
-    vol_name = 'my_volclaim'
+    vname = 'my_volclaim'
+    path = f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vname}'
+
     api_responses = [
         _create_response(first_res),
         _create_response(200),
@@ -155,12 +157,12 @@ async def test_remove_volume(patch, story, line, async_mock, first_res):
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app,
-                  f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vol_name}'
-                  f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
+                  f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vname}'
+                  f'?PropagationPolicy=Background&gracePeriodSeconds=3',
                   method='delete'),
-        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
-        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
-        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
+        mock.call(story.app, path),
+        mock.call(story.app, path),
+        mock.call(story.app, path),
     ]
 
 
@@ -278,7 +280,8 @@ async def test_create_pod(patch, async_mock, story, line, res_code):
         assert Kubernetes.create_service.mock.called is False
     else:
         Kubernetes.create_deployment.mock.assert_called_with(
-            story, line, image, container_name, start_command, None, env)
+            story, line, image, container_name, binds,
+            start_command, None, env)
         Kubernetes.create_service.mock.assert_called_with(
             story, line, container_name)
 
@@ -288,6 +291,7 @@ async def test_create_deployment(patch, async_mock, story):
     container_name = 'asyncy--alpine-1'
     story.app.app_id = 'my_app'
     image = 'alpine:latest'
+    binds = ['my_vol:/mnt/data']
 
     env = {'token': 'asyncy-19920', 'username': 'asyncy'}
     start_command = ['/bin/bash', 'sleep', '10000']
@@ -331,9 +335,19 @@ async def test_create_deployment(patch, async_mock, story):
                                         'command': shutdown_command
                                     }
                                 }
+                            },
+                            'volumeMounts': {
+                                'name': 'my_vol',
+                                'mountPath': '/mnt/data'
                             }
                         }
-                    ]
+                    ],
+                    'volumes': {
+                        'name': 'my_vol',
+                        'persistentVolumeClaim': {
+                            'claimName': 'my_volclaim'
+                        }
+                    }
                 }
             }
         }
@@ -356,7 +370,8 @@ async def test_create_deployment(patch, async_mock, story):
     line = {}
 
     await Kubernetes.create_deployment(story, line, image, container_name,
-                                       start_command, shutdown_command, env)
+                                       binds, start_command, shutdown_command,
+                                       env)
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app, expected_create_path, expected_payload),
@@ -378,7 +393,6 @@ async def test_create_volume(patch, story, line, async_mock):
         'kind': 'PersistentVolumeClaim',
         'metadata': {
             'name': vol_name_claim,
-            'namespace': story.app.app_id
         },
         'spec': {
             'accessModes': 'ReadOnlyMany',
@@ -386,7 +400,7 @@ async def test_create_volume(patch, story, line, async_mock):
                 'requests': {
                     'storage': '1Gi'
                 }
-            }   
+            }
         }
     }
 
