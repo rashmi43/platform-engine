@@ -236,16 +236,16 @@ class Kubernetes:
         if binds:
             for i in range(len(binds)):
                vol = binds[i].split(':')
-                volMounts.append({
+               volMounts.append({
                     'mountPaths': vol[1],
                     'name': vol[0]
                 })
-                volumes.append({
-                    'name': vol[0],
-                    'persistentVolumeClaim': {
-                        'claimName': vol[0]+'claim'
-                    }
-                })
+               volumes.append({
+                   'name': vol[0],
+                   'persistentVolumeClaim': {
+                       'claimName': vol[0]+'claim'
+                   }
+               })
 
         if env:
             for k, v in env.items():
