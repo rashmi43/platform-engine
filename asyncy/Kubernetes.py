@@ -289,6 +289,8 @@ class Kubernetes:
                                 'volumeMounts': volMounts 
                              }],
                         'volumes': volumes
+                    }
+                }
             }
         }
 
