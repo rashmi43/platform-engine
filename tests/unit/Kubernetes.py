@@ -261,11 +261,12 @@ async def test_create_pod(patch, async_mock, story, line, res_code):
     start_command = ['/bin/sleep', '1d']
     container_name = 'asyncy--alpine-1'
     env = {'token': 'foo'}
+    binds = ['my_vol:/mnt/data']
 
     story.app.app_id = 'my_app'
 
     await Kubernetes.create_pod(
-        story, line, image, container_name, start_command, None, env)
+        story, line, image, container_name, binds, start_command, None, env)
 
     Kubernetes.make_k8s_call.mock.assert_called_with(
         story.app,
@@ -370,7 +371,7 @@ async def test_create_deployment(patch, async_mock, story):
 async def test_create_volume(patch, story, line, async_mock):
     story.app.app_id = 'my_app'
     vol_name = 'my_vol'
-    vol_name_claim = my_volclaim
+    vol_name_claim = 'my_volclaim'
 
     expected_payload = {
         'apiVersion': 'apps/v1',
