@@ -159,8 +159,8 @@ async def test_remove_volume(patch, story, line, async_mock, first_res):
                   f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
                   method='delete'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
-        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
-        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
+        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
+        mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
     ]
 
 
