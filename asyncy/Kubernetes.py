@@ -92,9 +92,9 @@ class Kubernetes:
     async def remove_volume(cls, story, line, name):
         method = 'delete'
 
-        path = f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
-               f'?PropagationPolicy=Background&gracePeriodSeconds=3'
-        res = await cls.make_k8s_call(story.app, path, payload, method)
+        res = await cls.make_k8s_call(story.app, 
+                  f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
+                  f'?PropagationPolicy=Background&gracePeriodSeconds=3', payload, method)
 
         cls.raise_if_not_2xx(res, story, line)
         story.logger.debug(f'k8s volume {name} deleted')
