@@ -381,7 +381,7 @@ async def test_create_volume(patch, story, line, async_mock, story):
         'apiVersion': 'apps/v1',
         'kind': 'PersistentVolumeClaim',
         'metadata': {
-            'name': vol_name_claim',
+            'name': vol_name_claim,
             'namespace': story.app.app_id
         }
         'spec': {
