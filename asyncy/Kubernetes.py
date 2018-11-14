@@ -90,9 +90,8 @@ class Kubernetes:
 
     @classmethod
     async def remove_volume(cls, story, line, name):
-        method = 'delete'
-
-        res = await cls.make_k8s_call(story.app,
+        res = await cls.make_k8s_call(
+            story.app,
             f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims/{name}'
             f'?PropagationPolicy=Background&gracePeriodSeconds=3', method='delete')
 
@@ -243,7 +242,7 @@ class Kubernetes:
                 volumes.append({
                     'name': vol[0],
                     'persistentVolumeClaim': {
-                        'claimName': vol[0]+'claim'
+                        'claimName': vol[0] + 'claim'
                     }
                 })
 
@@ -285,8 +284,8 @@ class Kubernetes:
                             'imagePullPolicy': 'Always',
                             'env': env_k8s,
                             'lifecycle': {
-                             },
-                             'volumeMounts': volMounts 
+                            },
+                            'volumeMounts': volMounts 
                         }],
                         'volumes': volumes
                     }
