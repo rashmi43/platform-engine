@@ -136,7 +136,7 @@ async def test_start_no_command(patch, story, async_mock, run_command):
         LineConstants.service: 'alpine',
         LineConstants.command: 'echo'
     }
-
+    binds = []
     patch.object(Kubernetes, 'create_pod', new=async_mock())
 
     story.app.services = {
@@ -166,7 +166,7 @@ async def test_start_no_command(patch, story, async_mock, run_command):
 
     await Containers.start(story, line)
     Kubernetes.create_pod.mock.assert_called_with(
-        story, line, 'alpine', 'asyncy-alpine',
+        story, line, 'alpine', 'asyncy-alpine', binds,
         run_command or ['tail', '-f', '/dev/null'], None,
         {'alpine_only': True, 'global': 'yes'})
 

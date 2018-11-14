@@ -81,7 +81,8 @@ class Containers:
             env[key] = val
 
         await Kubernetes.create_pod(story, line, image, container_name,
-                                    binds, start_command, shutdown_command, env)
+                                    binds, start_command, shutdown_command,
+                                    env)
 
     @classmethod
     async def clean_app(cls, app):
