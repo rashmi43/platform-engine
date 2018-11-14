@@ -141,6 +141,7 @@ def _create_response(code: int, body: dict = None):
 @mark.asyncio
 async def test_remove_volume(patch, story, line, async_mock, first_res):
     story.app.app_id = 'my_app'
+    vol_name = 'my_volclaim'
     api_responses = [
         _create_response(first_res),
         _create_response(200),
@@ -150,13 +151,13 @@ async def test_remove_volume(patch, story, line, async_mock, first_res):
     patch.object(Kubernetes, 'make_k8s_call',
                  new=async_mock(side_effect=api_responses))
     patch.object(asyncio, 'sleep', new=async_mock())
-    await Kubernetes.remove_volume(story, line, my_volclaim)
+    await Kubernetes.remove_volume(story, line, 'my_volclaim')
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app,
-            f'/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'
-            f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
-            method='delete'),
+                  f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vol_name}'
+                  f'?PropagationPolicy=Background''&gracePeriodSeconds=3',
+                  method='delete'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/my_volclaim'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
         mock.call(story.app, '/api/v1/namespaces/my_app/persistentvolumeclaims/myvol_claim'),
@@ -366,16 +367,10 @@ async def test_create_deployment(patch, async_mock, story):
 
 
 @mark.asyncio
-async def test_create_volume(patch, story, line, async_mock, story):
-    container_name = 'asyncy--alpine-1'
+async def test_create_volume(patch, story, line, async_mock):
     story.app.app_id = 'my_app'
-    image = 'alpine:latest'
     vol_name = 'my_vol'
     vol_name_claim = my_volclaim
-
-    env = {'token': 'asyncy-19920', 'username': 'asyncy'}
-    start_command = ['/bin/bash', 'sleep', '10000']
-    shutdown_command = ['wall', 'Shutdown']
 
     expected_payload = {
         'apiVersion': 'apps/v1',
