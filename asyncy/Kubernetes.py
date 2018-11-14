@@ -1,41 +1,41 @@
-# -*- CODING: UTF-8 -*-
-IMPORT ASYNCIO
-IMPORT JSON
-IMPORT SSL
+# -*- coding: utf-8 -*-
+import asyncio
+import json
+import ssl
 
-FROM TORNADO.HTTPCLIENT IMPORT ASYNCHTTPCLIENT, HTTPRESPONSE
+from tornado.httpclient import AsyncHTTPClient, HTTPResponse
 
-FROM .EXCEPTIONS IMPORT K8SERROR
-FROM .STORIES IMPORT STORIES
-FROM .CONSTANTS.LINECONSTANTS IMPORT LINECONSTANTS
-FROM .UTILS.HTTPUTILS IMPORT HTTPUTILS
+from .Exceptions import K8sError
+from .Stories import Stories
+from .constants.LineConstants import LineConstants
+from .utils.HttpUtils import HttpUtils
 
 
-CLASS KUBERNETES:
+class Kubernetes:
 
-    @CLASSMETHOD
-    DEF IS_2XX(CLS, RES: HTTPRESPONSE):
-        RETURN ROUND(RES.CODE / 100) == 2
+    @classmethod
+    def is_2xx(cls, res: HTTPResponse):
+        return round(res.code / 100) == 2
 
-    @CLASSMETHOD
-    DEF RAISE_IF_NOT_2XX(CLS, RES: HTTPRESPONSE, STORY, LINE):
-        IF CLS.IS_2XX(RES):
-            RETURN
+    @classmethod
+    def raise_if_not_2xx(cls, res: HTTPResponse, story, line):
+        if cls.is_2xx(res):
+            return
 
-        PATH = RES.REQUEST.URL
-        RAISE K8SERROR(STORY=STORY, LINE=LINE,
-                       MESSAGE=F'FAILED TO CALL {PATH}! '
-                               F'CODE={RES.CODE}; BODY={RES.BODY}; '
-                               F'ERROR={RES.ERROR}')
+        path = res.request.url
+        raise K8sError(story=story, line=line,
+                       message=f'Failed to call {path}! '
+                               f'code={res.code}; body={res.body}; '
+                               f'error={res.error}')
 
-    @CLASSMETHOD
-    ASYNC DEF CREATE_NAMESPACE_IF_REQUIRED(CLS, STORY, LINE):
-        RES = AWAIT CLS.MAKE_K8S_CALL(STORY.APP,
-                                      F'/API/V1/NAMESPACES/{STORY.APP.APP_ID}')
+    @classmethod
+    async def create_namespace_if_required(cls, story, line):
+        res = await cls.make_k8s_call(story.app,
+                                      f'/api/v1/namespaces/{story.app.app_id}')
 
-        IF RES.CODE == 200:
-            STORY.LOGGER.DEBUG(F'K8S NAMESPACE {STORY.APP.APP_ID} EXISTS')
-            RETURN
+        if res.code == 200:
+            story.logger.debug(f'k8s namespace {story.app.app_id} exists')
+            return
 
         story.logger.debug(f'k8s namespace {story.app.app_id} does not exist')
         payload = {
