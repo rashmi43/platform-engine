@@ -109,7 +109,7 @@ class Kubernetes:
                 'name': name + 'claim',
             },
             'spec': {
-                'accessModes': 'ReadOnlyMany'
+                'accessModes': 'ReadOnlyMany',
                 'resources': {
                     'requests': {
                         'storage': '1Gi'
