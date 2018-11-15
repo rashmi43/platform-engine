@@ -102,7 +102,7 @@ class Kubernetes:
 
     @classmethod
     async def create_volume(cls, story, line, name):
-        path = '/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims'
+        path = f'/api/v1/namespaces/{story.app.app_id}/persistentvolumeclaims'
         payload = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolumeClaim',
@@ -239,7 +239,7 @@ class Kubernetes:
             for i in range(len(binds)):
                 vol = binds[i].split(':')
                 volMounts.append({
-                    'mountPaths': vol[1],
+                    'mountPath': vol[1],
                     'name': vol[0]
                 })
                 volumes.append({

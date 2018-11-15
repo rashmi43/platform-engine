@@ -144,25 +144,15 @@ async def test_remove_volume(patch, story, line, async_mock, first_res):
     vname = 'my_volclaim'
     path = f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vname}'
 
-    api_responses = [
-        _create_response(first_res),
-        _create_response(200),
-        _create_response(200),
-        _create_response(404),
-    ]
-    patch.object(Kubernetes, 'make_k8s_call',
-                 new=async_mock(side_effect=api_responses))
-    patch.object(asyncio, 'sleep', new=async_mock())
+    patch.object(Kubernetes, 'make_k8s_call', new=async_mock())
+    patch.object(Kubernetes, 'raise_if_not_2xx')
     await Kubernetes.remove_volume(story, line, 'my_volclaim')
 
     assert Kubernetes.make_k8s_call.mock.mock_calls == [
         mock.call(story.app,
                   f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vname}'
                   f'?PropagationPolicy=Background&gracePeriodSeconds=3',
-                  method='delete'),
-        mock.call(story.app, path),
-        mock.call(story.app, path),
-        mock.call(story.app, path),
+                  method='delete')
     ]
 
 
@@ -336,18 +326,18 @@ async def test_create_deployment(patch, async_mock, story):
                                     }
                                 }
                             },
-                            'volumeMounts': {
+                            'volumeMounts': [{
+                                'mountPath': '/mnt/data',
                                 'name': 'my_vol',
-                                'mountPath': '/mnt/data'
-                            }
+                            }]
                         }
                     ],
-                    'volumes': {
+                    'volumes': [{
                         'name': 'my_vol',
                         'persistentVolumeClaim': {
                             'claimName': 'my_volclaim'
                         }
-                    }
+                    }]
                 }
             }
         }
@@ -389,7 +379,7 @@ async def test_create_volume(patch, story, line, async_mock):
     vol_name_claim = 'my_volclaim'
 
     expected_payload = {
-        'apiVersion': 'apps/v1',
+        'apiVersion': 'v1',
         'kind': 'PersistentVolumeClaim',
         'metadata': {
             'name': vol_name_claim,
@@ -404,32 +394,22 @@ async def test_create_volume(patch, story, line, async_mock):
         }
     }
 
-    patch.object(asyncio, 'sleep', new=async_mock())
-
-    expected_create_path = f'/apis/apps/v1/namespaces/' \
+    expected_create_path = f'/api/v1/namespaces/' \
                            f'{story.app.app_id}/persistentvolumeclaims'
-    expected_verify_path = f'/apis/apps/v1/namespaces/{story.app.app_id}' \
+    expected_verify_path = f'/api/v1/namespaces/{story.app.app_id}' \
                            f'/persistentvolumeclaims/{vol_name_claim}'
 
-    patch.object(Kubernetes, 'make_k8s_call', new=async_mock(side_effect=[
-        _create_response(404),
-        _create_response(201),
-        _create_response(200, {'status': {'readyReplicas': 0}}),
-        _create_response(200, {'status': {'readyReplicas': 0}}),
-        _create_response(200, {'status': {'readyReplicas': 1}})
-    ]))
+
+    patch.object(Kubernetes, 'make_k8s_call', new=async_mock())
+    patch.object(Kubernetes, 'raise_if_not_2xx')
     line = {}
 
     await Kubernetes.create_volume(story, line, vol_name)
 
-    assert Kubernetes.make_k8s_call.mock.mock_calls == [
-        mock.call(story.app, expected_create_path, expected_payload),
-        mock.call(story.app, expected_create_path, expected_payload),
-        mock.call(story.app, expected_verify_path),
-        mock.call(story.app, expected_verify_path),
-        mock.call(story.app, expected_verify_path)
-    ]
-
+    Kubernetes.make_k8s_call.mock.assert_called_with(
+        story.app, expected_create_path, expected_payload)
+    Kubernetes.raise_if_not_2xx.assert_called_with(
+        Kubernetes.make_k8s_call.mock.return_value, story, line)
 
 @mark.asyncio
 async def test_create_service(patch, story, async_mock):
