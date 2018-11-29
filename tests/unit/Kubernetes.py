@@ -142,7 +142,6 @@ def _create_response(code: int, body: dict = None):
 async def test_remove_volume(patch, story, line, async_mock, first_res):
     story.app.app_id = 'my_app'
     vname = 'my_volclaim'
-    path = f'/api/v1/namespaces/my_app/persistentvolumeclaims/{vname}'
 
     patch.object(Kubernetes, 'make_k8s_call', new=async_mock())
     patch.object(Kubernetes, 'raise_if_not_2xx')
@@ -396,9 +395,6 @@ async def test_create_volume(patch, story, line, async_mock):
 
     expected_create_path = f'/api/v1/namespaces/' \
                            f'{story.app.app_id}/persistentvolumeclaims'
-    expected_verify_path = f'/api/v1/namespaces/{story.app.app_id}' \
-                           f'/persistentvolumeclaims/{vol_name_claim}'
-
 
     patch.object(Kubernetes, 'make_k8s_call', new=async_mock())
     patch.object(Kubernetes, 'raise_if_not_2xx')
@@ -410,6 +406,7 @@ async def test_create_volume(patch, story, line, async_mock):
         story.app, expected_create_path, expected_payload)
     Kubernetes.raise_if_not_2xx.assert_called_with(
         Kubernetes.make_k8s_call.mock.return_value, story, line)
+
 
 @mark.asyncio
 async def test_create_service(patch, story, async_mock):
