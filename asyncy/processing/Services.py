@@ -326,6 +326,36 @@ class Services:
         raise ArgumentTypeMismatchError(name, t, story=story, line=line)
 
     @classmethod
+    def check_value_with_type(cls, value, prop_type):
+        """
+        Validates for types listed on
+        https://microservice.guide/schema/actions/#arguments.
+
+        Supported types: int, float, string, list, map, boolean, or any
+        """
+        t = prop_type
+        print(f'value is {value} and t is {prop_type}')
+        if t == 'string' and isinstance(value, str):
+            return True
+        elif t == 'number' and (isinstance(value, int) or isinstance(
+                                value, float)):
+            return True
+        elif t == 'int' and isinstance(value, int):
+            return True
+        elif t == 'float' and isinstance(value, float):
+            return True
+        elif t == 'list' and isinstance(value, list):
+            return True
+        elif t == 'map' and isinstance(value, dict):
+            return True
+        elif t == 'boolean' and isinstance(value, bool):
+            return True
+        elif t == 'any' or t == 'object':
+            return True
+        else:
+            return False
+
+    @classmethod
     def smart_insert(cls, story, line, command_conf: dict, key: str, value,
                      m: dict):
         """
@@ -427,7 +457,14 @@ class Services:
         if int(response.code / 100) == 2:
             content_type = response.headers.get('Content-Type')
             if content_type and 'application/json' in content_type:
-                return ujson.loads(response.body)
+                if cls.validate_output_properties(command_conf, response.body,
+                                                  story, line):
+                    return ujson.loads(response.body)
+                else:
+                    raise AsyncyError(message=f'Output contract violated! '
+                                      f'Status code {response.code}; '
+                                      f'response body: {response.body}',
+                                      story=story, line=line)
             else:
                 return cls.parse_output(command_conf, response.body,
                                         story, line, content_type)
@@ -437,6 +474,39 @@ class Services:
                               f'Status code: {response.code}; '
                               f'response body: {response_body}',
                               story=story, line=line)
+
+    @classmethod
+    def validate_output_properties(cls, command_conf: dict, body, story,
+                                   line):
+        """
+        Verify all properties are contained in the return body
+        """
+        output = command_conf.get('output', {})
+        flag = True
+        if output.get('properties') is not None:
+            props = output.get('properties')
+            props_list = props.keys()
+            if props_list:
+                for prop in props_list:
+                    if prop not in body:
+                        return False
+                    elif prop in body:
+                        temp = props[prop]
+                        print(f'temp is {temp}')
+                        prop_type = temp.get('type', None)
+                        if prop_type is not None:
+                            prop_type = temp.get('type')
+                            print(f'prop_type is {prop_type}')
+                            value = body.get(prop)
+                            print(f'value is {value}')
+                            flag = cls.check_value_with_type(value, prop_type)
+                            if flag is True:
+                                continue
+                            else:
+                                return False
+                        else:
+                            return False
+        return True
 
     @classmethod
     def parse_output(cls, command_conf: dict, raw_output, story,
