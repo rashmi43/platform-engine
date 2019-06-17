@@ -326,31 +326,29 @@ class Services:
         raise ArgumentTypeMismatchError(name, t, story=story, line=line)
 
     @classmethod
-    def check_value_with_type(cls, value, prop_type):
+    def check_value_with_type(cls, value, type):
         """
         Validates for types listed on
         https://microservice.guide/schema/actions/#arguments.
 
         Supported types: int, float, string, list, map, boolean, or any
         """
-        t = prop_type
-        print(f'value is {value} and t is {prop_type}')
-        if t == 'string' and isinstance(value, str):
+        if type == 'string' and isinstance(value, str):
             return True
-        elif t == 'number' and (isinstance(value, int) or isinstance(
-                                value, float)):
+        elif type == 'number' and (isinstance(value, int) or isinstance(
+                                   value, float)):
             return True
-        elif t == 'int' and isinstance(value, int):
+        elif type == 'int' and isinstance(value, int):
             return True
-        elif t == 'float' and isinstance(value, float):
+        elif type == 'float' and isinstance(value, float):
             return True
-        elif t == 'list' and isinstance(value, list):
+        elif type == 'list' and isinstance(value, list):
             return True
-        elif t == 'map' and isinstance(value, dict):
+        elif type == 'map' and isinstance(value, dict):
             return True
-        elif t == 'boolean' and isinstance(value, bool):
+        elif type == 'boolean' and isinstance(value, bool):
             return True
-        elif t == 'any' or t == 'object':
+        elif type == 'any' or type == 'object':
             return True
         else:
             return False
@@ -485,24 +483,19 @@ class Services:
         flag = True
         if output.get('properties') is not None:
             props = output.get('properties')
-            props_list = props.keys()
-            if props_list:
-                for prop in props_list:
-                    if prop not in body:
+            key_list = props.keys()
+            if key_list:
+                for prop_key in key_list:
+                    if prop_key not in body:
                         return False
-                    elif prop in body:
-                        temp = props[prop]
-                        print(f'temp is {temp}')
-                        prop_type = temp.get('type', None)
+                    elif prop_key in body:
+                        prop_def = props[prop_key]
+                        prop_type = prop_def.get('type', None)
                         if prop_type is not None:
-                            prop_type = temp.get('type')
-                            print(f'prop_type is {prop_type}')
-                            value = body.get(prop)
-                            print(f'value is {value}')
-                            flag = cls.check_value_with_type(value, prop_type)
-                            if flag is True:
-                                continue
-                            else:
+                            prop_value = body.get(prop_key)
+                            flag = cls.check_value_with_type(prop_value,
+                                                             prop_type)
+                            if flag is False:
                                 return False
                         else:
                             return False

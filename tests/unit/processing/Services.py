@@ -431,6 +431,104 @@ def test_parse_output_invalid_type(story):
         Services.parse_output(command_conf, 'blah', story, {}, '')
 
 
+def test_validate_output_properties(story):
+    line = {}
+    command_conf = {
+        'output': {
+            'type': 'application/json',
+            'contentType': 'application/json',
+            'properties': {
+                'message_id': {
+                    'help': 'The message ID',
+                    'type': 'int'
+                },
+                'from': {
+                    'help': 'The object with bot details.',
+                    'type': 'string'
+                },
+                'chat': {
+                    'help': 'The chat object with chat details.',
+                    'type': 'string'
+                }
+            }
+        }
+    }
+    body = {'from': 'storyscript', 'message_id': 123, 'chat': 'my chat'}
+    expected_output = True
+
+    assert Services.validate_output_properties(
+        command_conf, body, story, line) == expected_output
+    assert Services.validate_output_properties(
+        command_conf, {'to': 'abc.com'}, story, line) is False
+
+
+def test_validate_output_properties_missing_property(story):
+    command_conf = {
+        'output': {
+            'type': 'application/json',
+            'contentType': 'application/json',
+            'properties': {
+                'message_id': {
+                    'help': 'The message ID',
+                    'type': 'int'
+                },
+                'status': {
+                    'type': 'boolean',
+                    'help': 'status'
+                }
+            }
+        }
+    }
+
+    assert Services.validate_output_properties(
+        command_conf, {'message_id': 'msg_id_1'}, story, {}) is False
+    assert Services.validate_output_properties(
+        command_conf, {'to': 123}, story, {}) is False
+    assert Services.validate_output_properties(
+        command_conf, {'status': True, 'message_id': 123}, story, {}) is True
+
+
+@mark.parametrize('typ', ['int', 'float', 'string', 'list', 'map',
+                          'boolean', 'any', 'number'])
+@mark.parametrize('val', [1, 0.9, 'hello', [0, 1], {'a': 'b'}, True, False])
+def test_validate_output_properties_each_type(typ, val, story):
+    command_conf = {
+        'output': {
+            'type': 'application/json',
+            'contentType': 'application/json',
+            'properties': {
+                'message_id': {
+                    'help': 'The message ID',
+                    'type': typ
+                }
+            }
+        }
+    }
+
+    valid = False
+    if typ == 'string' and isinstance(val, str):
+        valid = True
+    elif typ == 'int' and isinstance(val, int):
+        valid = True
+    elif typ == 'float' and isinstance(val, float):
+        valid = True
+    elif typ == 'number' and (isinstance(val, float) or isinstance(
+                              val, int)):
+        valid = True
+    elif typ == 'list' and isinstance(val, list):
+        valid = True
+    elif typ == 'map' and isinstance(val, dict):
+        valid = True
+    elif typ == 'boolean' and isinstance(val, bool):
+        valid = True
+    elif typ == 'any':
+        valid = True
+
+    if valid:
+        assert Services.validate_output_properties(
+            command_conf, {'message_id': val}, story, {}) is True
+
+
 def test_convert_bytes_to_string():
     assert Services._convert_bytes_to_string(b'hello') == 'hello'
     assert Services._convert_bytes_to_string('hello') == 'hello'
