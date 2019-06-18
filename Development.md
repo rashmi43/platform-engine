@@ -17,7 +17,7 @@
 8. This will contain ca.crt and token values which can be decoded using base64 and updated in your Config.py.
 
 ## Run:
-1. Follow this document and create your first story <https://docs.storyscript.io/storyscript/writing/#basics-http-responses>.
+1. Follow this document and create your first story <https://docs.storyscript.io/storyscript/writing/#basics-http-responses>.    You can even refer <https://hub.storyscript.io> for some sample stories and services.
 2. Use storyscript compile -j to compile your story.
 3. Update app_public.releases table with the payload generated with the above command.
 4. Run asyncy-server start and this will now deploy the story whose payload was uploaded to your  to your local Kubernetes. 
