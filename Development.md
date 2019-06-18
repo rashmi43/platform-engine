@@ -3,11 +3,10 @@ Where to begin:
 ## Prerequisites:
 
 Postgres database server version 10.5
-Graphql
-Python 3.6 or above.
-Kubernetes 1.9 or above
-story
-storyscript
+- Graphql
+- Python 3.6 or above.
+- Kubernetes 1.9 or above
+- storyscript - (pip install storyscript)
 
 ## Steps:
 Install all the above prerequisites.
