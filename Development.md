@@ -17,10 +17,10 @@ Postgres database server version 10.5
 8. This will contain ca.crt and token values which can be decoded using base64 and updated in your Config.py.
 
 ## Run:
-- Follow this document and create your first app.
-- Use storyscript compile -j to compile your story.
-- Update app_public.releases table with the payload generated with the above command.
-- Run asyncy-server start and this will now deploy the story whose payload was uploaded to your  to your local Kubernetes. 
+1. Follow this document and create your first app.
+2. Use storyscript compile -j to compile your story.
+3. Update app_public.releases table with the payload generated with the above command.
+4. Run asyncy-server start and this will now deploy the story whose payload was uploaded to your  to your local Kubernetes. 
 
 You can now use this environment to do your development.
 
