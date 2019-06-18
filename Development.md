@@ -12,8 +12,8 @@
 3. Configure platform-engine to talk to your Kubernetes.
 4. Update asyncy/Config.py with your cluster CLUSTER_AUTH_TOKEN, CLUSTER_CERT and CLUSTER_HOST.
 5. You can retrieve the CLUSTER_AUTH_TOKEN and CLUSTER_CERT using the below commands:
-6. kubectl -n default get secrets  |grep default
-7. kubectl -n default edit secret default-token-dq8ck
+   kubectl -n default get secrets  |grep default
+   kubectl -n default edit secret default-token-dq8ck
 8. This will contain ca.crt and token values which can be decoded using base64 and updated in your Config.py.
 
 ## Run:
