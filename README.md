@@ -7,8 +7,6 @@ The engine powering Asyncy and executing stories.
 ## Installing
 See https://github.com/asyncy/stack-compose to install in production.
 
-See Setup.md to install locally.
-
 ```
 $ python setup.py install
 ```
