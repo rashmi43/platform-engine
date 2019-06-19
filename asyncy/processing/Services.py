@@ -326,7 +326,6 @@ class Services:
 
         raise ArgumentTypeMismatchError(name, t, story=story, line=line)
 
-
     @classmethod
     def smart_insert(cls, story, line, command_conf: dict, key: str, value,
                      m: dict):
