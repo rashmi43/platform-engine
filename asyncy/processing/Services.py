@@ -22,6 +22,7 @@ from ..entities.Multipart import FileFormField, FormField
 from ..utils import Dict
 from ..utils.HttpUtils import HttpUtils
 from ..utils.StringUtils import StringUtils
+from ..utils.TypeResolver import TypeResolver, TypeValueAssertionError
 
 InternalCommand = namedtuple('InternalCommand',
                              ['arguments', 'output_type', 'handler'])
@@ -325,33 +326,6 @@ class Services:
 
         raise ArgumentTypeMismatchError(name, t, story=story, line=line)
 
-    @classmethod
-    def check_value_with_type(cls, value, type):
-        """
-        Validates for types listed on
-        https://microservice.guide/schema/actions/#arguments.
-
-        Supported types: int, float, string, list, map, boolean, or any
-        """
-        if type == 'string' and isinstance(value, str):
-            return True
-        elif type == 'number' and (isinstance(value, int) or isinstance(
-                                   value, float)):
-            return True
-        elif type == 'int' and isinstance(value, int):
-            return True
-        elif type == 'float' and isinstance(value, float):
-            return True
-        elif type == 'list' and isinstance(value, list):
-            return True
-        elif type == 'map' and isinstance(value, dict):
-            return True
-        elif type == 'boolean' and isinstance(value, bool):
-            return True
-        elif type == 'any' or type == 'object':
-            return True
-        else:
-            return False
 
     @classmethod
     def smart_insert(cls, story, line, command_conf: dict, key: str, value,
@@ -455,14 +429,8 @@ class Services:
         if int(response.code / 100) == 2:
             content_type = response.headers.get('Content-Type')
             if content_type and 'application/json' in content_type:
-                if cls.validate_output_properties(command_conf, response.body,
-                                                  story, line):
-                    return ujson.loads(response.body)
-                else:
-                    raise AsyncyError(message=f'Output contract violated! '
-                                      f'Status code {response.code}; '
-                                      f'response body: {response.body}',
-                                      story=story, line=line)
+                return cls.validate_output_properties(
+                    command_conf, response.body, story, line)
             else:
                 return cls.parse_output(command_conf, response.body,
                                         story, line, content_type)
@@ -480,26 +448,46 @@ class Services:
         Verify all properties are contained in the return body
         """
         output = command_conf.get('output', {})
-        flag = True
-        if output.get('properties') is not None:
-            props = output.get('properties')
-            key_list = props.keys()
-            if key_list:
-                for prop_key in key_list:
-                    if prop_key not in body:
-                        return False
-                    elif prop_key in body:
-                        prop_def = props[prop_key]
-                        prop_type = prop_def.get('type', None)
-                        if prop_type is not None:
-                            prop_value = body.get(prop_key)
-                            flag = cls.check_value_with_type(prop_value,
-                                                             prop_type)
-                            if flag is False:
-                                return False
-                        else:
-                            return False
-        return True
+        body_json = {}
+        if type(body) == str:
+            body_json = ujson.loads(body)
+        elif type(body) == dict:
+            body_json = body
+        if output.get('properties') is not None and output.get(
+                'type') == 'object':
+            try:
+                cls.recurse_nested('object', output, body_json)
+                return body_json
+            except TypeValueAssertionError as error:
+                raise AsyncyError(message=f'Output contract violated! '
+                                  f'Found value: {error.value}; '
+                                  f'Mismatched type: {error.type}',
+                                  story=story, line=line)
+        else:
+            return body_json
+
+    @classmethod
+    def recurse_nested(cls, type, val, body):
+        if type == 'object' and val.get('properties') is not None:
+            val_props = val.get('properties')
+            val_keys = val_props.keys()
+            for key in val_keys:
+                key_def = val_props[key]
+                prop_type = key_def['type']
+                if key not in body and prop_type != 'object':
+                    raise TypeValueAssertionError(key, prop_type)
+                else:
+                    if prop_type == 'object' and key_def.get(
+                                    'properties') is not None:
+                        prop_value = key_def
+                    else:
+                        prop_value = body.get(key)
+                    if prop_type is None or prop_value is None:
+                        return TypeValueAssertionError(prop_value, prop_type)
+                    else:
+                        cls.recurse_nested(prop_type, prop_value, body)
+        else:
+            TypeResolver.check_value_with_type(val, type)
 
     @classmethod
     def parse_output(cls, command_conf: dict, raw_output, story,

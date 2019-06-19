@@ -435,10 +435,10 @@ def test_validate_output_properties(story):
     line = {}
     command_conf = {
         'output': {
-            'type': 'application/json',
+            'type': 'object',
             'contentType': 'application/json',
             'properties': {
-                'message_id': {
+                'msg_id': {
                     'help': 'The message ID',
                     'type': 'int'
                 },
@@ -449,23 +449,38 @@ def test_validate_output_properties(story):
                 'chat': {
                     'help': 'The chat object with chat details.',
                     'type': 'string'
+                },
+                'id': {
+                    'type': 'object',
+                    'properties': {
+                        'cid': {
+                            'type': 'int'
+                        },
+                        'cmsg': {
+                            'type': 'string'
+                        }
+                    }
                 }
             }
         }
     }
-    body = {'from': 'storyscript', 'message_id': 123, 'chat': 'my chat'}
-    expected_output = True
+    body = '{"from": "storyscript", "msg_id": 123, "chat": "my chat"}'
+    body1 = '{"from": "storyscript", "msg_id": 123, "chat": "chat", \
+            "cid": 111, "cmsg":"hello"}'
+    expected_output = ujson.loads(body1)
+    print(f'expected_output is {expected_output}')
 
     assert Services.validate_output_properties(
-        command_conf, body, story, line) == expected_output
-    assert Services.validate_output_properties(
-        command_conf, {'to': 'abc.com'}, story, line) is False
+        command_conf, body1, story, line) == expected_output
+    with pytest.raises(AsyncyError):
+        Services.validate_output_properties(
+            command_conf, body, story, {})
 
 
 def test_validate_output_properties_missing_property(story):
     command_conf = {
         'output': {
-            'type': 'application/json',
+            'type': 'object',
             'contentType': 'application/json',
             'properties': {
                 'message_id': {
@@ -479,13 +494,21 @@ def test_validate_output_properties_missing_property(story):
             }
         }
     }
+    body = '{"message_id": "msg_id_1"}'
+    body1 = '{"to": 123}'
+    body3 = {'status': True, 'message_id': 123}
 
+    with pytest.raises(AsyncyError):
+        Services.validate_output_properties(
+            command_conf, body, story, {})
+    with pytest.raises(AsyncyError):
+        Services.validate_output_properties(
+            command_conf, body1, story, {})
+    # with pytest.raises(AsyncyError):
+    #    Services.validate_output_properties(
+    #        command_conf, body3, story, {})
     assert Services.validate_output_properties(
-        command_conf, {'message_id': 'msg_id_1'}, story, {}) is False
-    assert Services.validate_output_properties(
-        command_conf, {'to': 123}, story, {}) is False
-    assert Services.validate_output_properties(
-        command_conf, {'status': True, 'message_id': 123}, story, {}) is True
+        command_conf, body3, story, {}) is body3
 
 
 @mark.parametrize('typ', ['int', 'float', 'string', 'list', 'map',
@@ -504,7 +527,8 @@ def test_validate_output_properties_each_type(typ, val, story):
             }
         }
     }
-
+    body = {'message_id': val}
+    print(f'body expcted in test is {body}')
     valid = False
     if typ == 'string' and isinstance(val, str):
         valid = True
@@ -526,7 +550,7 @@ def test_validate_output_properties_each_type(typ, val, story):
 
     if valid:
         assert Services.validate_output_properties(
-            command_conf, {'message_id': val}, story, {}) is True
+            command_conf, body, story, {}) == body
 
 
 def test_convert_bytes_to_string():
