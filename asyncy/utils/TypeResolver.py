@@ -17,18 +17,6 @@ class TypeAssertionError(Exception):
     pass
 
 
-class TypeValueAssertionError(Exception):
-    """
-    Raised when value does not match type.
-    """
-    def __init__(self, value, type):
-        self.value = value
-        self.type = type
-
-    def __str__(self):
-        return(repr(self.value))
-
-
 class TypeResolver:
 
     @classmethod
@@ -63,35 +51,6 @@ class TypeResolver:
             if isinstance(item, t):
                 return
         raise TypeAssertionError()
-
-    @staticmethod
-    def check_value_with_type(value, type):
-        """
-        Validates for types listed on
-        https://microservice.guide/schema/actions/#arguments.
-
-        Supported types: int, float, string, list, map, boolean, or any
-        """
-        print(f'in check value is {value} and type is {type}')
-        if type == 'string' and isinstance(value, str):
-            return
-        elif type == 'number' and (isinstance(value, int) or isinstance(
-                                   value, float)):
-            return
-        elif type == 'int' and isinstance(value, int):
-            return
-        elif type == 'float' and isinstance(value, float):
-            return
-        elif type == 'list' and isinstance(value, list):
-            return
-        elif type == 'map' and isinstance(value, dict):
-            return
-        elif type == 'boolean' and isinstance(value, bool):
-            return
-        elif type == 'any' or type == 'object':
-            return
-        else:
-            raise TypeValueAssertionError(value, type)
 
     @classmethod
     def type_string(cls, item):

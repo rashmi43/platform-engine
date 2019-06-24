@@ -19,10 +19,11 @@ from ..constants.ContextConstants import ContextConstants
 from ..constants.LineConstants import LineConstants
 from ..constants.ServiceConstants import ServiceConstants
 from ..entities.Multipart import FileFormField, FormField
+from ..omg.ServiceContract import OmgPropertyValueMismatchError, \
+    ServiceContract
 from ..utils import Dict
 from ..utils.HttpUtils import HttpUtils
 from ..utils.StringUtils import StringUtils
-from ..utils.TypeResolver import TypeResolver, TypeValueAssertionError
 
 InternalCommand = namedtuple('InternalCommand',
                              ['arguments', 'output_type', 'handler'])
@@ -425,11 +426,14 @@ class Services:
             3, story.logger, url, client, kwargs)
 
         story.logger.debug(f'HTTP response code is {response.code}')
+        output = command_conf.get('output')
         if int(response.code / 100) == 2:
             content_type = response.headers.get('Content-Type')
             if content_type and 'application/json' in content_type:
-                return cls.validate_output_properties(
-                    command_conf, response.body, story, line)
+                body = ujson.loads(response.body)
+                ServiceContract.validate_output_properties(
+                    output, body, story, line)
+                return body
             else:
                 return cls.parse_output(command_conf, response.body,
                                         story, line, content_type)
@@ -439,54 +443,6 @@ class Services:
                               f'Status code: {response.code}; '
                               f'response body: {response_body}',
                               story=story, line=line)
-
-    @classmethod
-    def validate_output_properties(cls, command_conf: dict, body, story,
-                                   line):
-        """
-        Verify all properties are contained in the return body
-        """
-        output = command_conf.get('output', {})
-        body_json = {}
-        if type(body) == str:
-            body_json = ujson.loads(body)
-        elif type(body) == dict:
-            body_json = body
-        if output.get('properties') is not None and output.get(
-                'type') == 'object':
-            try:
-                cls.recurse_nested('object', output, body_json)
-                return body_json
-            except TypeValueAssertionError as error:
-                raise AsyncyError(message=f'Output contract violated! '
-                                  f'Found value: {error.value}; '
-                                  f'Mismatched type: {error.type}',
-                                  story=story, line=line)
-        else:
-            return body_json
-
-    @classmethod
-    def recurse_nested(cls, type, val, body):
-        if type == 'object' and val.get('properties') is not None:
-            val_props = val.get('properties')
-            val_keys = val_props.keys()
-            for key in val_keys:
-                key_def = val_props[key]
-                prop_type = key_def['type']
-                if key not in body and prop_type != 'object':
-                    raise TypeValueAssertionError(key, prop_type)
-                else:
-                    if prop_type == 'object' and key_def.get(
-                                    'properties') is not None:
-                        prop_value = key_def
-                    else:
-                        prop_value = body.get(key)
-                    if prop_type is None or prop_value is None:
-                        return TypeValueAssertionError(prop_value, prop_type)
-                    else:
-                        cls.recurse_nested(prop_type, prop_value, body)
-        else:
-            TypeResolver.check_value_with_type(val, type)
 
     @classmethod
     def parse_output(cls, command_conf: dict, raw_output, story,
