@@ -426,10 +426,10 @@ class Services:
             3, story.logger, url, client, kwargs)
 
         story.logger.debug(f'HTTP response code is {response.code}')
-        output = command_conf.get('output')
         if int(response.code / 100) == 2:
             content_type = response.headers.get('Content-Type')
             if content_type and 'application/json' in content_type:
+                output = command_conf.get('output')
                 body = ujson.loads(response.body)
                 ServiceContract.validate_output_properties(
                     output, body, story, line)
