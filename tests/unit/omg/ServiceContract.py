@@ -168,6 +168,8 @@ def test_validate_output_properties_type_number(story):
 
     ServiceContract.validate_output_properties(
         command_conf.get('output'), body, story, line)
+
+
 def test_validate_output_properties_missing_type(story):
     line = {}
     command_conf = {
