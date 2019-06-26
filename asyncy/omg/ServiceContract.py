@@ -1,37 +1,42 @@
 # -*- coding: utf-8 -*-
 from .OmgExceptions import OmgMismatchedPropertyLengthError, \
     OmgMissingKeyInBodyError, OmgPropertyKeyMissingTypeError, \
-    OmgPropertyTypeNotFoundError, OmgPropertyValueMismatchError
+    OmgPropertyValueMismatchError
 
 
 class ServiceContract:
+    """
+    Class to verify service contract is not violated. The response body
+    must include the same properties as specified in the microservice.yml.
+    This class has methods to verify the same/
+    """
 
     @classmethod
-    def ensure_value_of_type(cls, _type, value):
+    def ensure_value_of_type(cls, type_, value):
         """
         Ensures that the value matches the expected type as listed on
         https://microservice.guide/schema/actions/#arguments.
 
         Supported types: int, float, number, string, list, map, boolean, or any
         """
-        if _type == 'string':
-            cls.ensure_type(str, value, _type)
-        elif _type == 'int':
-            cls.ensure_type(int, value, _type)
-        elif _type == 'boolean':
-            cls.ensure_type(bool, value, _type)
-        elif _type == 'map':
-            cls.ensure_type(dict, value, _type)
-        elif _type == 'float':
-            cls.ensure_type(float, value, _type)
-        elif _type == 'list':
-            cls.ensure_type(list, value, _type)
-        elif _type == 'number':
-            cls.ensure_type_list([int, float], value, _type)
-        elif _type == 'any':
+        assert type_ in ['int', 'float', 'number', 'boolean', 'string',
+                         'map', 'list', 'any']
+        if type_ == 'string':
+            cls.ensure_type(str, value, type_)
+        elif type_ == 'int':
+            cls.ensure_type(int, value, type_)
+        elif type_ == 'boolean':
+            cls.ensure_type(bool, value, type_)
+        elif type_ == 'map':
+            cls.ensure_type(dict, value, type_)
+        elif type_ == 'float':
+            cls.ensure_type(float, value, type_)
+        elif type_ == 'list':
+            cls.ensure_type(list, value, type_)
+        elif type_ == 'number':
+            cls.ensure_type_list([int, float], value, type_)
+        elif type_ == 'any':
             return
-        else:
-            raise OmgPropertyTypeNotFoundError(_type)
 
     @classmethod
     def validate_output_properties(cls, output: dict, body, story,
@@ -59,20 +64,20 @@ class ServiceContract:
                     val.get('type'), body[key])
 
     @staticmethod
-    def ensure_type(typ, val, _type):
+    def ensure_type(typ, val, type_):
         """
         Check if value belongs to the type specified.
         """
         if isinstance(val, typ):
             return
-        raise OmgPropertyValueMismatchError(_type, val)
+        raise OmgPropertyValueMismatchError(type_, val)
 
     @staticmethod
-    def ensure_type_list(_list, val, _type):
+    def ensure_type_list(list_, val, type_):
         """
         Check if value belongs to the type specified.
         """
-        for item in _list:
+        for item in list_:
             if isinstance(val, item):
                 return
-        raise OmgPropertyValueMismatchError(_type, val)
+        raise OmgPropertyValueMismatchError(type_, val)

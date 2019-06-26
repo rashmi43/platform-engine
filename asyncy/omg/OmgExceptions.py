@@ -2,18 +2,6 @@
 from ..Exceptions import AsyncyError
 
 
-class OmgPropertyTypeNotFoundError(AsyncyError):
-    """
-    Raised when an unknown type is specified which is not
-    recognised as per the OMG specification.
-    """
-    def __init__(self, _type):
-        super().__init__(
-            f'The property type {_type} is not supported.'
-            ' Please specify a known type as per OMG specs.')
-        self._type = _type
-
-
 class OmgMissingKeyInBodyError(AsyncyError):
     """
     Raised when response body does not contain
@@ -47,13 +35,13 @@ class OmgPropertyValueMismatchError(AsyncyError):
     Raised when the property type from microservice.yml does not match
     the value type in the response body.
     """
-    def __init__(self, _type, value):
+    def __init__(self, type_, value):
         super().__init__(
-            f'The property value {value} should be of type {_type}. '
+            f'The property value {value} should be of type {type_}. '
             'It does not adhere to the microservice service contract.')
         self.value = value
         print(f'val is {value}')
-        self._type = _type
+        self.type_ = type_
 
 
 class OmgPropertyKeyMissingTypeError(AsyncyError):

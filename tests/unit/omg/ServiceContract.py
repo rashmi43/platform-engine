@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock
 
 from asyncy.omg.OmgExceptions import OmgMismatchedPropertyLengthError, \
     OmgMissingKeyInBodyError, OmgPropertyKeyMissingTypeError, \
-    OmgPropertyTypeNotFoundError, OmgPropertyValueMismatchError
+    OmgPropertyValueMismatchError
 from asyncy.omg.ServiceContract import ServiceContract
 
 import pytest
@@ -142,10 +142,8 @@ def test_validate_output_properties_invalid_type(story):
             }
         }
     }
-    message = f'The property type random is not supported.' \
-              ' Please specify a known type as per OMG specs.'
 
-    with pytest.raises(OmgPropertyTypeNotFoundError, match=message):
+    with pytest.raises(AssertionError):
         ServiceContract.validate_output_properties(
             command_conf.get('output'), {'msg_id': '1'}, story, line)
 
