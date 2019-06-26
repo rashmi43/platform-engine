@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock
 
 from asyncy.omg.OmgExceptions import OmgMismatchedPropertyLengthError, \
     OmgMissingKeyInBodyError, OmgPropertyKeyMissingTypeError, \
-    OmgPropertyValueMismatchError
+    OmgPropertyTypeNotFoundError, OmgPropertyValueMismatchError
 from asyncy.omg.ServiceContract import ServiceContract
 
 import pytest
@@ -15,7 +15,10 @@ from tornado.gen import coroutine
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest, HTTPResponse
 
 
-def test_validate_output_properties(story):
+@mark.parametrize('body', ['{"from": "storyscript", "msg_id": 123,'
+                           '"chat": "chat",'
+                           '"id": {"cid": 111, "cmsg": "hello"}}'])
+def test_validate_output_properties(story, body):
     line = {}
     command_conf = {
         'output': {
@@ -48,14 +51,15 @@ def test_validate_output_properties(story):
             }
         }
     }
-    body = '{"from": "storyscript", "msg_id": 123, "chat": "chat", \
-             "id": {"cid": 111, "cmsg": "hello"}}'
 
     ServiceContract.validate_output_properties(
         command_conf.get('output'), json.loads(body), story, line)
 
 
-def test_validate_output_properties_triple_nested(story):
+@mark.parametrize('body', ['{"from": "storyscript", "msg_id": 123,'
+                           '"chat": "chat", "id": {"cid": 111,'
+                           '"cmsg": {"name": "ss", "cmsg_id": 1}}}'])
+def test_validate_output_properties_triple_nested(story, body):
     line = {}
     command_conf = {
         'output': {
@@ -96,8 +100,6 @@ def test_validate_output_properties_triple_nested(story):
             }
         }
     }
-    body = '{"from": "storyscript", "msg_id": 123, "chat": "chat", \
-             "id": {"cid": 111, "cmsg": {"name": "ss", "cmsg_id": 1}}}'
 
     ServiceContract.validate_output_properties(
         command_conf.get('output'), json.loads(body), story, line)
@@ -117,17 +119,39 @@ def test_validate_output_properties_body_none(story):
             }
         }
     }
-    body = {}
     message = 'The number of properties in the microservice.yml 3 does not' \
         ' match the number of items returned by the body 0. Please make sure' \
         ' your microservice returns all the properties.'
 
     with pytest.raises(OmgMismatchedPropertyLengthError, match=message):
         ServiceContract.validate_output_properties(
-            command_conf.get('output'), body, story, line)
+            command_conf.get('output'), {}, story, line)
 
 
-def test_validate_output_properties_type_number_mismatch(story):
+def test_validate_output_properties_invalid_type(story):
+    line = {}
+    command_conf = {
+        'output': {
+            'type': 'object',
+            'contentType': 'application/json',
+            'properties': {
+                'msg_id': {
+                    'help': 'The message ID',
+                    'type': 'random'
+                }
+            }
+        }
+    }
+    message = f'The property type random is not supported.' \
+              ' Please specify a known type as per OMG specs.'
+
+    with pytest.raises(OmgPropertyTypeNotFoundError, match=message):
+        ServiceContract.validate_output_properties(
+            command_conf.get('output'), {'msg_id': '1'}, story, line)
+
+
+@mark.parametrize('body', [{'msg_id': '1.9'}])
+def test_validate_output_properties_type_number_mismatch(story, body):
     line = {}
     command_conf = {
         'output': {
@@ -141,7 +165,6 @@ def test_validate_output_properties_type_number_mismatch(story):
             }
         }
     }
-    body = {'msg_id': '1.9'}
     message = 'The property value 1.9 should be of type number. '\
         'It does not adhere to the microservice service contract.'
 
@@ -150,7 +173,8 @@ def test_validate_output_properties_type_number_mismatch(story):
             command_conf.get('output'), body, story, line)
 
 
-def test_validate_output_properties_type_number(story):
+@mark.parametrize('body', [{'msg_id': 1.9}])
+def test_validate_output_properties_type_number(story, body):
     line = {}
     command_conf = {
         'output': {
@@ -164,13 +188,13 @@ def test_validate_output_properties_type_number(story):
             }
         }
     }
-    body = {'msg_id': 1.9}
 
     ServiceContract.validate_output_properties(
         command_conf.get('output'), body, story, line)
 
 
-def test_validate_output_properties_missing_type(story):
+@mark.parametrize('body', [{'msg_id': 123}])
+def test_validate_output_properties_missing_type(story, body):
     line = {}
     command_conf = {
         'output': {
@@ -183,7 +207,6 @@ def test_validate_output_properties_missing_type(story):
             }
         }
     }
-    body = {'msg_id': 123}
     message = 'The property msg_id does not have a type specifed. ' \
         'Please check microservice.yml and specify type for each value.'
 
@@ -207,7 +230,9 @@ def test_validate_output_properties_output_none(story):
             command_conf.get('output'), json.loads(body), story, line)
 
 
-def test_validate_output_properties_missing_property_key(story):
+@mark.parametrize('body', ['{"from": "storyscript", "msg_id": 123,'
+                           '"chat": "my chat"}'])
+def test_validate_output_properties_missing_property_key(story, body):
     command_conf = {
         'output': {
             'type': 'object',
@@ -228,7 +253,6 @@ def test_validate_output_properties_missing_property_key(story):
             }
         }
     }
-    body = '{"from": "storyscript", "msg_id": 123, "chat": "my chat"}'
     message = 'Output contract violated. The property id is not found in the' \
               ' response body. Please make sure your microservice returns' \
               ' this.'
@@ -259,7 +283,7 @@ def test_validate_output_properties_mismatched_property(body, story):
         }
     }
     val = body['message_id']
-    message = f'The property value {val} should be of type <class \'int\'>.' \
+    message = f'The property value {val} should be of type int.' \
               f' It does not adhere to the microservice service contract.'
 
     with pytest.raises(OmgPropertyValueMismatchError, match=message):
@@ -304,10 +328,11 @@ def test_check_value_each_type(typ, val, story):
 
 
 @mark.parametrize('typ,val', [('int', 1.9), ('float', 1), ('string', 1),
-                              ('list', 'hello'), ('map', [0, 1]),
-                              ('boolean', 'True')])
+                              ('list', 'hello'), ('map', 'd'),
+                              ('boolean', {'b': 'c'})])
 def test_fail_check_value_each_type(typ, val, story):
-    msg = f'The property value {val} should be of type {typ}.It does \
-        not adhere to the microservice service contract.'
-    with pytest.raises(OmgPropertyValueMismatchError):
-            ServiceContract.ensure_value_of_type(typ, val) == msg
+    msg = f'The property value {val} should be of type {typ}. ' \
+          'It does not adhere to the microservice service contract.'
+
+    with pytest.raises(OmgPropertyValueMismatchError, match=msg):
+            ServiceContract.ensure_value_of_type(typ, val)

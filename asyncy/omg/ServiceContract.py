@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from .OmgExceptions import OmgMismatchedPropertyLengthError, \
     OmgMissingKeyInBodyError, OmgPropertyKeyMissingTypeError, \
-    OmgPropertyValueMismatchError
+    OmgPropertyTypeNotFoundError, OmgPropertyValueMismatchError
 
 
 class ServiceContract:
@@ -12,24 +12,26 @@ class ServiceContract:
         Ensures that the value matches the expected type as listed on
         https://microservice.guide/schema/actions/#arguments.
 
-        Supported types: int, float, string, list, map, boolean, or any
+        Supported types: int, float, number, string, list, map, boolean, or any
         """
         if _type == 'string':
-            cls.ensure_type(str, value)
-        if _type == 'int':
-            cls.ensure_type(int, value)
-        if _type == 'boolean':
-            cls.ensure_type(bool, value)
-        if _type == 'map':
-            cls.ensure_type(dict, value)
-        if _type == 'float':
-            cls.ensure_type(float, value)
-        if _type == 'list':
-            cls.ensure_type(list, value)
-        if _type == 'number':
+            cls.ensure_type(str, value, _type)
+        elif _type == 'int':
+            cls.ensure_type(int, value, _type)
+        elif _type == 'boolean':
+            cls.ensure_type(bool, value, _type)
+        elif _type == 'map':
+            cls.ensure_type(dict, value, _type)
+        elif _type == 'float':
+            cls.ensure_type(float, value, _type)
+        elif _type == 'list':
+            cls.ensure_type(list, value, _type)
+        elif _type == 'number':
             cls.ensure_type_list([int, float], value, _type)
-        if _type == 'any':
+        elif _type == 'any':
             return
+        else:
+            raise OmgPropertyTypeNotFoundError(_type)
 
     @classmethod
     def validate_output_properties(cls, output: dict, body, story,
@@ -37,11 +39,13 @@ class ServiceContract:
         """
         Verify all properties are contained in the return body
         """
-        if (not body and output) or (not output and body):
-            raise OmgMismatchedPropertyLengthError(len(output), len(body))
+        if bool(body) ^ bool(output):
+            raise OmgMismatchedPropertyLengthError(output, body)
         props = output.get('properties')
         if len(props) != len(body):
-            raise OmgMismatchedPropertyLengthError(len(props), len(body))
+            story.logger.error(f'The property items {props.keys()} do not '
+                               f'match the body item length {body.keys()}')
+            raise OmgMismatchedPropertyLengthError(props, body)
         for key, val in props.items():
             if key not in body:
                 raise OmgMissingKeyInBodyError(key)
@@ -55,13 +59,13 @@ class ServiceContract:
                     val.get('type'), body[key])
 
     @staticmethod
-    def ensure_type(typ, val):
+    def ensure_type(typ, val, _type):
         """
         Check if value belongs to the type specified.
         """
         if isinstance(val, typ):
             return
-        raise OmgPropertyValueMismatchError(typ, val)
+        raise OmgPropertyValueMismatchError(_type, val)
 
     @staticmethod
     def ensure_type_list(_list, val, _type):

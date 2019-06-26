@@ -120,40 +120,6 @@ class ActionNotFound(AsyncyError):
             story=story, line=line)
 
 
-class OmgPropertyValueMismatchError(AsyncyError):
-    """
-    Raised when value does not match type.
-    """
-    def __init__(self, value, type):
-        super().__init__(
-            f'The property value {value}'
-            f'should be of type {type}.'
-            f'It does not adhere to the microservice '
-            f'service contract.')
-        self.value = value
-        self.type = type
-
-    def __str__(self):
-        return(str(self.value))
-
-
-class OmgPropertyTypeMissingError(AsyncyError):
-    """
-    Raised when value does not match type.
-    """
-    def __init__(self, value, type):
-        super().__init__(
-            f'The property value {value} '
-            f'does not have a type {type} specifed.'
-            f'Please check microservice.yml '
-            f'and specify type for each value')
-        self.value = value
-        self.type = type
-
-    def __str__(self):
-        return(str(self.value))
-
-
 class EnvironmentVariableNotFound(AsyncyError):
     def __init__(self, service=None, variable=None, story=None, line=None):
         assert service is not None

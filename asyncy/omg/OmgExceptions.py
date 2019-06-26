@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
+from ..Exceptions import AsyncyError
 
 
-class AsyncyError(Exception):
-
-    def __init__(self, message=None, story=None, line=None):
-        super().__init__(message)
-        self.message = message
-        self.story = story
-        self.line = line
+class OmgPropertyTypeNotFoundError(AsyncyError):
+    """
+    Raised when an unknown type is specified which is not
+    recognised as per the OMG specification.
+    """
+    def __init__(self, _type):
+        super().__init__(
+            f'The property type {_type} is not supported.'
+            ' Please specify a known type as per OMG specs.')
+        self._type = _type
 
 
 class OmgMissingKeyInBodyError(AsyncyError):
@@ -25,17 +29,17 @@ class OmgMissingKeyInBodyError(AsyncyError):
 
 class OmgMismatchedPropertyLengthError(AsyncyError):
     """
-    Raised when response body does not contain
-    the key from microservice.yml
+    Raised when either output is empty and body returns values
+    or vice versa.
     """
-    def __init__(self, prop_len, body_len):
+    def __init__(self, props, body):
         super().__init__(
-            f'The number of properties in the microservice.yml {prop_len} '
+            f'The number of properties in the microservice.yml {len(props)} '
             'does not match the number of items returned by the body '
-            f'{body_len}. Please make sure your microservice returns all'
-            ' the properties.')
-        self.prop_len = prop_len
-        self.body_len = body_len
+            f'{len(body)}. Please make sure your microservice returns all the'
+            f' properties. The items are {props.keys()} and {body.keys()}')
+        self.prop = props
+        self.body = body
 
 
 class OmgPropertyValueMismatchError(AsyncyError):
@@ -48,7 +52,8 @@ class OmgPropertyValueMismatchError(AsyncyError):
             f'The property value {value} should be of type {_type}. '
             'It does not adhere to the microservice service contract.')
         self.value = value
-        self.typ = _type
+        print(f'val is {value}')
+        self._type = _type
 
 
 class OmgPropertyKeyMissingTypeError(AsyncyError):
