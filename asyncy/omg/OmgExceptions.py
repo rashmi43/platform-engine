@@ -22,11 +22,11 @@ class OmgMismatchedPropertyLengthError(AsyncyError):
     """
     def __init__(self, props, body):
         super().__init__(
-            f'The number of properties in the microservice.yml {len(props)} '
+            f'The number of properties in the microservice.yml {props} '
             'does not match the number of items returned by the body '
-            f'{len(body)}. Please make sure your microservice returns all the'
-            f' properties. The items are {props.keys()} and {body.keys()}')
-        self.prop = props
+            f'{body}. Please make sure your microservice returns all the'
+            f' properties.')
+        self.props = props
         self.body = body
 
 
@@ -40,7 +40,6 @@ class OmgPropertyValueMismatchError(AsyncyError):
             f'The property value {value} should be of type {type_}. '
             'It does not adhere to the microservice service contract.')
         self.value = value
-        print(f'val is {value}')
         self.type_ = type_
 
 

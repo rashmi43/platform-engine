@@ -35,8 +35,8 @@ class ServiceContract:
             cls.ensure_type(list, value, type_)
         elif type_ == 'number':
             cls.ensure_type_list([int, float], value, type_)
-        elif type_ == 'any':
-            return
+        else:
+            assert type_ == 'any'
 
     @classmethod
     def validate_output_properties(cls, output: dict, body, story,

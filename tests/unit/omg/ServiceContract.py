@@ -119,9 +119,11 @@ def test_validate_output_properties_body_none(story):
             }
         }
     }
-    message = 'The number of properties in the microservice.yml 3 does not' \
-        ' match the number of items returned by the body 0. Please make sure' \
-        ' your microservice returns all the properties.'
+    message = 'The number of properties in the microservice.yml {\'type\': ' \
+        '\'object\', \'contentType\': \'application/json\', \'properties\':' \
+        ' {\'msg_id\': {\'help\': \'The message ID\', \'type\': \'int\'}}} ' \
+        'does not match the number of items returned by the body {}. Please' \
+        ' make sure your microservice returns all the properties.'
 
     with pytest.raises(OmgMismatchedPropertyLengthError, match=message):
         ServiceContract.validate_output_properties(
@@ -219,9 +221,9 @@ def test_validate_output_properties_output_none(story):
         'output': {}
     }
     body = '{"abc": "def"}'
-    message = 'The number of properties in the microservice.yml 0 does not' \
-        ' match the number of items returned by the body 1. Please make' \
-        ' sure your microservice returns all the properties.'
+    message = 'The number of properties in the microservice.yml {} does not' \
+        ' match the number of items returned by the body {\'abc\': \'def\'}.' \
+        ' Please make sure your microservice returns all the properties.'
 
     with pytest.raises(OmgMismatchedPropertyLengthError, match=message):
         ServiceContract.validate_output_properties(

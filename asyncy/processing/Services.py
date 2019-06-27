@@ -19,8 +19,10 @@ from ..constants.ContextConstants import ContextConstants
 from ..constants.LineConstants import LineConstants
 from ..constants.ServiceConstants import ServiceConstants
 from ..entities.Multipart import FileFormField, FormField
-from ..omg.ServiceContract import OmgPropertyValueMismatchError, \
-    ServiceContract
+from ..omg.OmgExceptions import OmgMismatchedPropertyLengthError, \
+    OmgMissingKeyInBodyError, OmgPropertyKeyMissingTypeError, \
+    OmgPropertyValueMismatchError
+from ..omg.ServiceContract import ServiceContract
 from ..utils import Dict
 from ..utils.HttpUtils import HttpUtils
 from ..utils.StringUtils import StringUtils
@@ -430,9 +432,23 @@ class Services:
             content_type = response.headers.get('Content-Type')
             if content_type and 'application/json' in content_type:
                 output = command_conf.get('output')
-                body = ujson.loads(response.body)
-                ServiceContract.validate_output_properties(
-                    output, body, story, line)
+                if response.body != (None or ''):
+                    body = ujson.loads(response.body)
+                else:
+                    raise AsyncyError(message=f'Empty response from service!'
+                                              f' Response body is {body}.',
+                                              story=story, line=line)
+                try:
+                    ServiceContract.validate_output_properties(
+                        output, body, story, line)
+                except (OmgMismatchedPropertyLengthError,
+                        OmgMissingKeyInBodyError,
+                        OmgPropertyKeyMissingTypeError,
+                        OmgPropertyValueMismatchError) as err:
+                    story.logger.debug(f'Output contract violated by {body}.'
+                                       f' exception is {err.message} on line '
+                                       f' {line} and story {story}.')
+                    return
                 return body
             else:
                 return cls.parse_output(command_conf, response.body,
